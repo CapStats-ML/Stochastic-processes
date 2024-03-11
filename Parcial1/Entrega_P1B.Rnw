@@ -1,0 +1,55 @@
+\documentclass{article}
+
+\title{UNIVERSIDAD NACIONAL DE COLOMBIA SEDE BOGOTA\\ PROCESOS ESTOCASTICOS \\Parical 1-B Implementacion Computacional}
+\author{Cesar A Prieto Sarmiento - CC: 1065843742}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\section*{Punto 1}
+
+Implementar los siguientes ejercicios en programación de $\mathrm{R}$ u otra programación.
+Enviar por correo electrónico el miércoles, 13 de marzo antes de las 07:00 a.m. Datos de transición:
+\[
+\begin{pmatrix}
+0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 \\
+0 & 0 & 0 & 0 & 1 & 0 \\
+\frac{1}{3} & \frac{1}{3} & \frac{1}{3} & 0 & 0 & 0 \\
+1 & 0 & 0 & 0 & 0 & 0 \\
+0 & \frac{1}{2} & 0 & 0 & 0 & \frac{1}{2}
+\end{pmatrix}
+\]
+
+\begin{enumerate}
+    \item Clasifica los estados en clases.
+    \item Estudia la recurrencia o transitoriedad de cada uno de los estados de la cadena.
+    \item Calcula el periodo de cada una de las clases recurrentes.
+    \item Identifica los estados ergódicos.
+\end{enumerate}
+
+\section*{Punto 2}
+
+En la oficina de Admisiones de la Universidad Nacional se ha obtenido la información necesaria para las siguientes estadísticas sobre un programa de Maestría que dura tres niveles: el $70 \%$ de los estudiantes que ingresan al primer nivel pasan con éxito al segundo nivel, el $10 \%$ lo repite y el $20 \%$ restante se retira por diferentes motivos; de todos los estudiantes que pasan al segundo nivel, el $80 \%$ accede al tercer nivel, el $8 \%$ repite y el $12 \%$ restante sale del programa por bajo nivel académico u otras razones; de todos los estudiantes que ingresan al tercer nivel, el $90 \%$ se gradúa, el $6 \%$ lo repite y el $4 \%$ restante no puede optar al título y son retirados por no cumplir las normas estipuladas.
+
+\begin{enumerate}
+    \item[a)] ¿Cuántos alumnos lograrán el título de Maestría de un grupo de 100 aspirantes que se matricularon en el primer nivel?
+    \item[b)] Si cada nivel dura un semestre, ¿durante cuántos años se deberá ofrecer esta Maestría si el país necesita, aproximadamente, 500 especialistas en esta área, sabiendo que esta universidad solo está en capacidad de recibir, como máximo, 50 alumnos nuevos cada semestre?
+\end{enumerate}
+
+\section*{Punto 3}
+
+Considera una caminata aleatoria con los estados $S=\{-2,-1,0,1,2\}$. Si el proceso está en estado $i$ ($i=-1,0,1$), entonces se mueve a cualquier $i-1$ o $i+1$ con igual probabilidad. Si el proceso se encuentra en estado $-2$ o $2$ en el tiempo $n$, entonces se mueve al estado $-1$, $0$ o $1$ en el tiempo $n+1$ con probabilidad igual.
+
+\begin{enumerate}
+    \item[a)] Escribe la matriz de probabilidad de transición para esta caminata aleatoria.
+    \item[b)] Calcula la distribución estacionaria.
+\end{enumerate}
+
+\section*{Punto 4}
+
+Un jugador llega a un casino con 200 dólares. Decide jugar hasta que su capital sea igual a 700 dólares o hasta que se arruine. En cada ronda de juego, el jugador gana o pierde 100 dólares con probabilidades 0.4 y 0.6 respectivamente. ¿Cuál es la probabilidad de que el jugador logre alcanzar su meta de los 700 dólares? ¿Cuál es la probabilidad de ruina del jugador?
+
+\end{document}
