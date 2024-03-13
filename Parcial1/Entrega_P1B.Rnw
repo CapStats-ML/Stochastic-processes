@@ -1,18 +1,103 @@
-\documentclass{article}
+\documentclass[11pt]{article}
+\usepackage[table]{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts, amssymb, amsmath}
+\usepackage{graphicx}
+\usepackage{svg}
+\usepackage{hyperref}
+\usepackage{verbatim}
+\usepackage[a4paper, left=25mm, right=25mm, top=25mm, bottom=25mm]{geometry}
+\usepackage{mathrsfs}
+\usepackage{babel}
+
+\setlength{\parindent}{0pt}
 
 \title{UNIVERSIDAD NACIONAL DE COLOMBIA SEDE BOGOTA\\ PROCESOS ESTOCASTICOS \\Parical 1-B Implementacion Computacional}
 \author{Cesar A Prieto Sarmiento - CC: 1065843742}
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
 
 \maketitle
+
+Carga de Paquetes usado en el desarrollo de los ejercicios planteados.
+
+<<>>=
+#install.packages("markovchain")
+#install.packages("DiagrammeR")
+#install.packages("diagram")
+
+library(markovchain)
+library(diagram)
+library(DiagrammeR)
+@
+
+
+\textbf{Extra:} El siguiente trozo de codigo fue tomado del reposirotio de GitHub donde esta subido el paquete markovchain, y modificado en alguno aspectos para que este pueda funcionar de manera correcta a la hora de graficar las cadenas descritas en los siguientes ejercicios. Para más ingresar en el link: 
+
+<<>>=
+# plot a diagram using DiagrammeR for a markovchain object
+.plotDiagrammeR <- function(object, node_fill_color = "lightblue", ...) {
+  if(is(object,"markovchain")){
+    mat <- object@transitionMatrix
+  } else if(is(object,"ctmc")){
+    mat <- object@generator
+  }
+  names <- rownames(mat)
+  
+  # names of nodes
+  nodes <- ''
+  for(i in 1:nrow(mat)) {
+    nodes <- paste0(nodes, names[i], ' [fillcolor = "', node_fill_color, '"]; ')
+  }
+  
+  # store edges
+  edges <- ''
+  for(i in 1:nrow(mat)) {
+    for(j in 1:ncol(mat)) {
+      if (mat[i,j] != 0) {
+        edges <- paste0(edges, names[i], "->", names[j], " [label = ", mat[i,j], "] ")
+      }
+    }
+  }
+  
+  # extract extra parameter
+  dots <- list(...)
+  args <- ""
+  for(name in names(dots)) {
+    args <- paste0(args, name, "=\"", dots[[name]], "\" ")
+  }
+  
+  # print(args)
+  if (requireNamespace("DiagrammeR", quietly = TRUE)) {
+    res <- DiagrammeR::grViz(paste0("
+  digraph circles {
+            graph [overlap = true, fontsize = 10]
+
+            node [shape = circle,
+            fixedsize = true,
+            width = 0.9] // sets as circles
+            ", nodes, "
+        
+            ", edges, args,"
+
+            // labelfontsize = 20 labelloc='t' label ='Weather transition matrix'
+          }
+  "))
+    
+    return (res)
+  } else {
+    print("Diagrammer unavailable")
+  }
+}
+@
+
 
 \section*{Punto 1}
 
 Implementar los siguientes ejercicios en programación de $\mathrm{R}$ u otra programación.
 Enviar por correo electrónico el miércoles, 13 de marzo antes de las 07:00 a.m. Datos de transición:
-\[
+
+$$
 \begin{pmatrix}
 0 & 0 & 1 & 0 & 0 & 0 \\
 0 & 0 & 0 & 0 & 0 & 1 \\
@@ -21,22 +106,150 @@ Enviar por correo electrónico el miércoles, 13 de marzo antes de las 07:00 a.m
 1 & 0 & 0 & 0 & 0 & 0 \\
 0 & \frac{1}{2} & 0 & 0 & 0 & \frac{1}{2}
 \end{pmatrix}
-\]
+
+
+<<>>=
+# Definir la matriz de transición
+P <- matrix(c(0, 0, 1, 0, 0, 0,
+              0, 0, 0, 0, 0, 1,
+              0, 0, 0, 0, 1, 0,
+              1/3, 1/3, 1/3, 0, 0, 0,
+              1, 0, 0, 0, 0, 0,
+              0, 1/2, 0, 0, 0, 1/2), nrow = 6, byrow = TRUE)
+
+# Crear objeto markovchain
+mc <- new("markovchain", states = c("A", "B", "C", "D", "E", "F"), transitionMatrix = P)
+
+#Visualizacion de la cadena
+set.seed(2)
+.plotDiagrammeR(mc, node_fill_color = "lightblue", label = "Matrix de transición", labelloc = "t")
+
+@
+
+
+Observemos que los datos quedan almacenados dentro del objeto mc. Utilizando la función summary, podemos explorar su contenido:
+
+<<>>=
+str(mc);show(mc) #Se explora la clase del objeto que se creo con la funcion anterior
+summary(mc) # Se explora el contenido del objeto mc 
+@
+
+
+De esta salida, podemos observar que la cadena de Markov es irreducible y no tiene estados absorbentes, lo cual será útil para responder algunas preguntas más adelante.
+
 
 \begin{enumerate}
     \item Clasifica los estados en clases.
+    
+    \textbf{Solucion:}
+    
+<<>>=
+# 1. Clasificar los estados en clases comunicantes
+communicating_classes <- communicatingClasses(mc)
+print("Clases de estados comunicantes:")
+print(communicating_classes)
+@
+
+    Existen 3 estados los cuales son: {A,C,E}$, ${B,F}$ y ${D}$
+    
     \item Estudia la recurrencia o transitoriedad de cada uno de los estados de la cadena.
+    
+    \textbf{Solucion:}
+    
+<<>>=
+# 2. Determinar la recurrencia de cada estado
+recurrent_states <- recurrentStates(mc)
+print("Estados recurrentes:")
+print(recurrent_states)
+@
+    
+    De la salida del codigo podemos decir que las clases recurrentes son ${A,C,E}$, 
+    ${B,F}$ y por otra parte la clase de es transitoria ${D}$.   
+    
     \item Calcula el periodo de cada una de las clases recurrentes.
+    
+    \textbf{Solucion:}
+
+<<>>=
+# 3. Calcular el período de cada clase recurrente
+C1 <- new("markovchain", transitionMatrix = P[c(1,3,5), c(1,3,5)])
+C2 <- new("markovchain", transitionMatrix = P[c(2,6), c(2,6)])
+
+cbind(period(C1), period(C2))
+@
+
+    De la salidad del codigo podemos concluir que para las clases 1 y 2 los periodos
+    son 3 y 1 respectivamente.
+
     \item Identifica los estados ergódicos.
+    
+    \textbf{Solucion:} Como el periodo de $C2 = 1$ entonces podemos decir que es 
+    aperiodico, por lo tanto es un estado ergodico.
+    
+    
 \end{enumerate}
 
 \section*{Punto 2}
 
 En la oficina de Admisiones de la Universidad Nacional se ha obtenido la información necesaria para las siguientes estadísticas sobre un programa de Maestría que dura tres niveles: el $70 \%$ de los estudiantes que ingresan al primer nivel pasan con éxito al segundo nivel, el $10 \%$ lo repite y el $20 \%$ restante se retira por diferentes motivos; de todos los estudiantes que pasan al segundo nivel, el $80 \%$ accede al tercer nivel, el $8 \%$ repite y el $12 \%$ restante sale del programa por bajo nivel académico u otras razones; de todos los estudiantes que ingresan al tercer nivel, el $90 \%$ se gradúa, el $6 \%$ lo repite y el $4 \%$ restante no puede optar al título y son retirados por no cumplir las normas estipuladas.
 
+<<>>=
+P <- matrix(c(1,0,0,0,0,
+              0.2,0.1,0.7,0,0,
+              0.12,0,0.08,0.8,0,
+              0.04,0,0,0.06,0.9,
+              0,0,0,0,1), nrow = 5, byrow = TRUE)
+
+ mc <- new("markovchain", transitionMatrix = P, 
+           states = c("B","1","2","3","G")) 
+#Donde B y G significan Baja y Grado
+ 
+set.seed(2)
+.plotDiagrammeR(mc, node_fill_color = "lightblue", label = "Matrix de transición", labelloc = "t")
+
+@
+
+Ahora, definamos la matriz canonica y hagamos un par de operaciones extra para poder respoder a las sigientes preguntas. 
+
+<<>>=
+ 
+CanoniMa <- matrix(c(1.00,0.00,0.00,0.00,0.00,
+                    0.00,1.00,0.00,0.00,0.00,
+                    0.20,0.00,0.10,0.70,0.00,
+                    0.12,0.00,0.00,0.08,0.80,
+                    0.04,0.90,0.00,0.00,0.06),
+                    nrow = 5, byrow = TRUE,
+                    dimnames = list(c("B","G","1","2","3"),
+                                    c("B","G","1","2","3")))
+
+M <- solve(diag(1,3,3) - CanoniMa[c(3,4,5), c(3,4,5)]); M
+@
+
+
 \begin{enumerate}
     \item[a)] ¿Cuántos alumnos lograrán el título de Maestría de un grupo de 100 aspirantes que se matricularon en el primer nivel?
+    
+    \textbf{Solucion:}
+    
+<<>>=
+#Probabilidades de Absorcion
+Pr <- absorptionProbabilities(mc);Pr
+@
+    
+    Dado la respuesta obtenida por la funcion implementada, podemos concluir que de un grupo de 100 aspirantes que se matricularon en primer nivel solo el $64\%$ de ellos lograran el titulo de la maestria en este caso 64 estudiantes.
+    
+    
     \item[b)] Si cada nivel dura un semestre, ¿durante cuántos años se deberá ofrecer esta Maestría si el país necesita, aproximadamente, 500 especialistas en esta área, sabiendo que esta universidad solo está en capacidad de recibir, como máximo, 50 alumnos nuevos cada semestre?
+    
+    \textbf{Solucion:}
+    
+<<>>=
+n <- ceiling(500/Pr[1,2]);n
+Años <- ceiling(n/50/2);Años
+@
+    
+    Así mismo, tamcien podemos concluir que para lograr la meta de 500 especialistas en el area, se necesitara un total de 8 años de oferta de la maestria.
+
 \end{enumerate}
 
 \section*{Punto 3}
@@ -45,7 +258,31 @@ Considera una caminata aleatoria con los estados $S=\{-2,-1,0,1,2\}$. Si el proc
 
 \begin{enumerate}
     \item[a)] Escribe la matriz de probabilidad de transición para esta caminata aleatoria.
+    
+    \textbf{Solucion: }
+    
+<<>>=
+P <- matrix(c(0,0.5,0,0.5,0,
+              0.5,0,0.5,0,0,
+              0,0.5,0,0.5,0,
+              0,0,0.5,0,0.5,
+              0,0,0,0.5,0.5), byrow = TRUE, ncol = 5)
+
+#Visualizacion de la cadena
+set.seed(2)
+.plotDiagrammeR(mc, node_fill_color = "lightblue", label = "Matrix de transición", labelloc = "t")
+
+mc <- new("markovchain", transitionMatrix = P, states = c("-2","-1","0","1","2"));mc
+
+@
+    
+    
     \item[b)] Calcula la distribución estacionaria.
+    
+<<>>=
+steadyStates(mc)
+@
+
 \end{enumerate}
 
 \section*{Punto 4}
