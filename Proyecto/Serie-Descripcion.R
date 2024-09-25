@@ -1,0 +1,201 @@
+# Librerías y directorio ----
+library(easypackages)
+
+libraries(c("zoo", "TSA", "MASS", "readr", "dplyr", "fable", "astsa", "readxl", "feasts", 
+            "timetk", "tibble", "tsibble", "forecast", "tidyverse", "lubridate",  "fabletools"))
+
+
+# IMPORTACION Y RECONOCIMIENTO DE LA BASE ----
+
+G_ARGOS <- read_delim("G_ARGOS.csv", delim = ";", escape_double = FALSE,
+                      col_types = cols(Fecha = col_date(format = "%d/%m/%Y")), 
+                      trim_ws = TRUE)
+str(G_ARGOS)
+
+## COMPLETAR DATOS FALTANTES MEDIANTE LA FUNCION zoo::na.locf
+
+FC <- data.frame(Fecha = seq(min(G_ARGOS$Fecha), max(G_ARGOS$Fecha), by = "1 day"))
+
+G_ARGOS <- merge(FC, G_ARGOS, by = "Fecha", all.x = TRUE)
+
+G_ARGOS$Último <- na.locf(G_ARGOS$Último)
+G_ARGOS$Apertura <- na.locf(G_ARGOS$Apertura)
+G_ARGOS$Máximo <- na.locf(G_ARGOS$Máximo)
+G_ARGOS$Mínimo <- na.locf(G_ARGOS$Mínimo)
+
+colnames(G_ARGOS) <- c("Fecha","Ultimo","Apertura","Maximo","Minimo")
+head(G_ARGOS)
+
+summary(G_ARGOS)
+
+# GRAFICAS PARA TODAS LAS VARIABLES DE LA SERIE ----
+
+attach(G_ARGOS)
+par(mfrow = c(2,2), mar = c(5.1, 5.1, 4.1, 2.1), bg = 'white')
+plot(x = Fecha , y = Apertura ,type = "l", main = 'Serie de tiempo variable Apertura', 
+     col = 'black', lwd = 1, font.main = 4, ylab="Miles de pesos", xlab="Año", cex.lab = 0.8,
+     cex.axis = 0.8, cex.main = 1, col.main = 'black', family = 'sans', bty = 'L', fg = 'black',
+     col.axis = 'black', col.lab = 'black', font.axis = 3)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+
+plot(x = Fecha , y = Ultimo , type = "l", main = 'Serie de tiempo variable Ultimo', 
+     col = 'black', lwd = 1, font.main = 4, ylab="Miles de pesos", xlab="Año", cex.lab = 0.8,
+     cex.axis = 0.8, cex.main = 1, col.main = 'black', family = 'sans', bty = 'L', fg = 'black',
+     col.axis = 'black', col.lab = 'black', font.axis = 3)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+
+plot(x = Fecha , y = Maximo , type = "l", main = 'Serie de tiempo variable Maximo', 
+     col = 'black', lwd = 1, font.main = 4, ylab="Miles de pesos", xlab="Año", cex.lab = 0.8,
+     cex.axis = 0.8, cex.main = 1, col.main = 'black', family = 'sans', bty = 'L', fg = 'black',
+     col.axis = 'black', col.lab = 'black', font.axis = 3)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+
+plot(x = Fecha , y = Minimo , type = "l", main = 'Serie de tiempo variable Minimo', 
+     col = 'black', lwd = 1, font.main = 4, ylab="Miles de pesos", xlab="Año", cex.lab = 0.8,
+     cex.axis = 0.8, cex.main = 1, col.main = 'black', family = 'sans', bty = 'L', fg = 'black',
+     col.axis = 'black', col.lab = 'black', font.axis = 3)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+par(mfrow = c(1,1))
+
+
+# SERIE PARA LA APERTURA DIARIA DEL ACTIVO EN LA BOLSA ---- 
+
+Apertura <- ts(data = G_ARGOS$Apertura, start = c(2010,4),frequency = 365)
+class(Apertura)
+str(Apertura)
+head(Apertura)
+
+par(mfrow = c(1,1), mar = c(5.1, 5.1, 4.1, 2.1), bg = 'white')
+
+plot(Apertura, main="ACCION DEL GRUPO ARGOS EN MILES DE PESOS", col = 'black', lwd = 1, font.main = 4,
+     ylab="Miles de pesos", xlab="Año", cex.lab = 0.8, cex.axis = 0.8, cex.main = 1, col.main = 'black',
+     family = 'sans', bty = 'L', fg = 'black', col.axis = 'black', col.lab = 'black', col.sub = 'gray35', 
+     sub = 'PRECIO EN LA APERTURA', font.axis = 3, font.sub = 2, cex.sub = 0.8)
+
+# Líneas de guía
+abline(h = seq(1, 25, 1), col = 'grey75', lty = 'dotted')
+abline(v = seq(2010, 2021, 1), col = 'grey75', lty = 'dotted')
+
+# DESCOMPOSICION STL DE LA SERIE ----
+
+df_Aper <- data.frame(Fecha = G_ARGOS$Fecha, Apertura = as.matrix(G_ARGOS$Apertura))
+tsibble_Aper <- as_tsibble(df_Aper)
+
+stl_result <- tsibble_Aper %>%
+  model(
+    STL(Apertura ~ trend() +
+          season(),
+        robust = TRUE)) %>%
+  components() 
+
+
+# Convertir a un dataframe para manipular más fácilmente
+stl_df <- as.data.frame(stl_result)
+
+par(mfrow = c(4, 1), mar = c(2.5, 5, 2.5, 2), bg = 'white')
+
+plot(stl_df$Fecha, stl_df$Apertura, type = "l", col = "black", ylab = "Original", lwd = 1,
+     cex.lab = 1, cex.axis = 1, family = 'sans', bty = 'o', fg = 'black', col.axis = 'black', col.lab = 'black',
+     font.axis = 1, font.lab = 2)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+title('DESCOMPOSICIÓN STL DE LA SERIE DE TIEMPO', cex.main = 1.5, font.main = 2, col.main = 'black')
+
+plot(stl_df$Fecha, stl_df$trend, type = "l", col = "black", ylab = "Tendencia", lwd = 1,
+     cex.lab = 1, cex.axis = 1, family = 'sans', bty = 'o', fg = 'black', col.axis = 'black', col.lab = 'black',
+     font.axis = 1, font.lab = 2)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+
+plot(stl_df$Fecha, stl_df$season_year, type = "l", col = "black", ylab = "Estacionalidad\nAnual", lwd = 1,
+     cex.lab = 1, cex.axis = 1, family = 'sans', bty = 'o', fg = 'black', col.axis = 'black', col.lab = 'black',
+     font.axis = 1, font.lab = 2)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+
+plot(stl_df$Fecha, stl_df$remainder, type = "l", col = "black", ylab = "Residuo", lwd = 1,
+     cex.lab = 1, cex.axis = 1, family = 'sans', bty = 'o', fg = 'black', col.axis = 'black', col.lab = 'black',
+     font.axis = 1, font.lab = 2)
+abline(v = as.numeric(as.Date(paste0(seq(2010, 2021), "-01-01"))), col = 'grey25', lty = 'dotted')
+par(mfrow = c(1, 1))
+
+
+# GRAFICO DE REZAGOS ACF Y PACF ----
+
+par(mfrow = c(1,2), mar = c(4.5, 4, 4, 1), bg = 'white')
+acf(Apertura, lag.max = 40, main = "", cex.main = 1.2, cex.lab = 0.8, cex.axis = 0.8, 
+    col = "black", lwd = 1, font.main = 2, ylab = "ACF", xlab = "Lags", cex.lab = 0.8, cex.axis = 0.8, family = 'sans', 
+    bty = 'L', fg = 'black', col.axis = 'black', col.lab = 'black', font.axis = 1, font.lab = 1)
+
+pacf(Apertura, lag.max = 40, main = "", cex.main = 0.5, cex.lab = 0.8, cex.axis = 0.8, 
+     col = "black", lwd = 1, font.main = 2, ylab = "PACF", xlab = "Lags", cex.lab = 0.8, cex.axis = 0.8, family = 'sans', 
+     bty = 'L', fg = 'black', col.axis = 'black', col.lab = 'black', font.axis = 1, font.lab = 1)
+mtext("ACF Y PACF PARA SERIE GRUPO ARGOS", side = 3, line = - 2, outer = TRUE, cex = 1, font = 2, col = "black")
+par(mfrow = c(1,1))
+
+# Dickey-Fuller PARA COMPROBAR SI LA SERIE ES ESTACIONARIA ----
+
+ar(Apertura) #El coeficiente para el primer rezago indica una fuerte correlacion
+tseries::adf.test(Apertura, alternative = "stationary", k = 12) 
+
+# Dado que el p-value (0.1001) es mayor que 0.05, no hay suficiente evidencia para
+# rechazar la hipótesis nula, que sostiene que la serie "Apertura" no es estacionaria. 
+# Por lo tanto, puedes concluir que la serie podría ser no estacionaria. 
+
+# RELACIONES NO LINEALES PARA LA SERIE ----
+
+par(mar = c(3,2,3,2))
+astsa::lag1.plot(Apertura, 12, corr = T)
+
+#INDICE DE INFORMACION MUTUA (AMI) PARA LA SERIE EN TRANSFORMADA Y DIFERENCIADA ----
+
+par(mar = c(3,2,3,2))
+nonlinearTseries::mutualInformation(Apertura, lag.max = 100,
+                                    n.partitions = 50, 
+                                    units = "Bits",
+                                    do.plot = TRUE)
+
+# PERIODOGRAMA DE LA SERIE  ----
+
+Periodo <- spectrum(Apertura, main = "Periodograma Para la Serie",
+                                xlim = c(0,4), log = "no", )
+abline(v = Periodo$freq[match(max(Periodo$spec), Periodo$spec)], col='red')
+
+periodograma <- Periodo
+max(Periodo$spec)
+periodograma$freq[match(max(periodograma$spec),periodograma$spec)]
+periodo=1/periodograma$freq[match(max(periodograma$spec),periodograma$spec)]
+periodo
+
+# DIAGNOSTICO DE LA SERIE POR DÍAS DE LA SEMANA ----
+
+Tb <- as_tsibble(Apertura,index=tibble(fecha))
+colnames(Tb)<-c("Fecha","Apertura")
+
+# Definir columna de día y el mes como factor (abreviado)
+Tb$dia <- wday(Tb$Fecha, label = TRUE, abbr = TRUE, week_start = 1)
+Tb$mes <- factor(month.abb[month(Tb$Fecha)], levels = month.abb)
+
+Tb %>%
+  mutate(diff_ND = Apertura - lag(Apertura)) %>%
+  ggplot(aes(x = dia, y = diff_ND)) +
+  geom_boxplot() +
+  labs(title = "Distribución de diferencias díarias",
+       x = "Día", y = "Diferencia respecto al valor anterior") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5), 
+        legend.position = "none", text = element_text(size = 10),
+        plot.subtitle = element_text(size = 12, face = "bold", hjust = 0.5, color = "grey50"))
+
+# DIAGNOSTICO DE LA SERIE POR MESES DEL AÑO ----
+
+Tb <- Tb %>%
+  mutate(mes = factor(month.abb[month(Fecha)], levels = month.abb))
+
+Tb %>%
+  mutate(diff_ND = Apertura - lag(Apertura)) %>%
+  ggplot(aes(x = mes, y = diff_ND)) +
+  geom_boxplot() +
+  labs(title = "Distribución de diferencias mensuales",
+       x = "Mes", y = "Diferencia respecto al valor anterior") + 
+  theme_minimal() +
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5), 
+        legend.position = "none", text = element_text(size = 10),
+        plot.subtitle = element_text(size = 12, face = "bold", hjust = 0.5, color = "grey50"))
